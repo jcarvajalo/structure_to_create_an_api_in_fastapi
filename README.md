@@ -4,7 +4,7 @@ I created this script for when i need to build an api with fastapi, basically th
 
 The sctructure is like that.
 
-´´´ bash
+``` bash
 ├── api_example
 │   ├── app
 │   │   ├── api
@@ -23,4 +23,4 @@ The sctructure is like that.
 │   └── requirements.txt
 
 
-´´´
+```
