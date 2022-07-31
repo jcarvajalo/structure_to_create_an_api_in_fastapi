@@ -125,8 +125,8 @@ from fastapi import HTTPException, status, Depends
 from fastapi.security import HTTPBasicCredentials, HTTPBasic
 
 security = HTTPBasic()
-API_CREDENTIALS_USERNAME = 'jairo' #os.getenv('API_CREDENTIALS_USERNAME')
-API_CREDENTIALS_PASSWORD = 'jairo' #os.getenv('API_CREDENTIALS_PASSWORD')
+API_CREDENTIALS_USERNAME = '' #os.getenv('API_CREDENTIALS_USERNAME')
+API_CREDENTIALS_PASSWORD = '' #os.getenv('API_CREDENTIALS_PASSWORD')
 
 def get_current_username(credentials: HTTPBasicCredentials = Depends(security)):
     correct_username = secrets.compare_digest(credentials.username,'jairo')
