@@ -22,5 +22,19 @@ The sctructure is like that.
 │   ├── Dockerfile
 │   └── requirements.txt
 
-
 ```
+
+## Instruction to run the script 
+
+
+``` bash 
+> bash create_api.bash
+here  you need add two values
+ * $name: This value is the name of api and to rename the folder and the files
+ * $path: This value is the path where the folder will be create
+ 
+``` 
+
+
+
+
