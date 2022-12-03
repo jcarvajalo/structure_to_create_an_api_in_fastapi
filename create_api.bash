@@ -1,4 +1,3 @@
-
 echo "Ingrese el nombre de la api"
 read name
 echo "ingrese la ruta donde se va a crear la api, ejemplo /home/user/Documentos"
@@ -28,8 +27,7 @@ pip install uvicorn==0.13.3
 pip freeze > $api_name/requirements.txt
 
 #create docker file
-echo """
-FROM python:3.9-slim
+echo """FROM python:3.9-slim
 WORKDIR /app
 
 COPY ./requirements.txt /app/requirements.txt
@@ -39,14 +37,10 @@ RUN apt-get update \
     && apt-get clean
 
 RUN pip install -r requirements.txt
-COPY . /app/
-""" > $api_name/Dockerfile
-
-
+COPY . /app/""" > $api_name/Dockerfile
 
 #files
-echo """
-from fastapi import FastAPI
+echo """from fastapi import FastAPI
 from app.api.routes.$name import $name
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -66,7 +60,6 @@ app = FastAPI(
         'name': '',
         'url': '',
     },
-    
 )
 
 origins = ['*']
@@ -86,41 +79,29 @@ async def startup():
 async def shutdown():
     print('shutdown')
 
-app.include_router($name, prefix='/api/v1/$name')
-""" > $api_name/app/app.py
+app.include_router($name, prefix='/api/v1/$name')""" > $api_name/app/app.py
 
+echo """from pymongo import MongoClient
+conn = MongoClient('')""" > $api_name/app/api/config/db.py
 
-
-echo """
-from pymongo import MongoClient
-conn = MongoClient('')   
-""" > $api_name/app/api/config/db.py
-
-echo """
-from typing import Optional
+echo """from typing import Optional
 from pydantic import BaseModel
 
-class $name(BaseModel): 
+class ${name^}(BaseModel):
+    baseAttribute:str""" > $api_name/app/api/models/$name.py
 
-""" > $api_name/app/api/models/$name.py
-
-echo """
-def $name+Entity(item) -> dict():
+echo """def ${name}Entity(item) -> dict():
     try:
         return {
            
-
         }
     except Exception as e:
         return (str(e),item)
 
-def $name+sEntity(entity) -> list():
-    return [$name+Entity(item) for item in entity]
+def ${name}sEntity(entity) -> list():
+    return [${name}Entity(item) for item in entity]""" > $api_name/app/api/schemas/$name.py
 
-""" > $api_name/app/api/schemas/$name.py
-
-echo """
-import secrets
+echo """import secrets
 from fastapi import HTTPException, status, Depends
 from fastapi.security import HTTPBasicCredentials, HTTPBasic
 
@@ -137,38 +118,23 @@ def get_current_username(credentials: HTTPBasicCredentials = Depends(security)):
             detail='Incorrect email or password',
             headers={'WWW-Authenticate': 'Basic'},
         )
-    return credentials.username
+    return credentials.username""" > $api_name/app/api/utils/acces_security.py
 
-""" > $api_name/app/api/utils/acces_security.py
-
-
-echo """
-import fastapi
-from app.api.schemas.$name import $name+sEntity, $name+Entity
-from app.api.models.$name import $name
+echo """import fastapi
+from app.api.schemas.$name import ${name}sEntity, ${name}Entity
+from app.api.models.$name import ${name^}
 from app.api.config.db import conn
-from app.api.utils.access_security import get_current_username
-from fastapi import APIRouter, Depends, HTTPException, Request, Response,
+from app.api.utils.acces_security import get_current_username
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from bson import ObjectId
-from app.api.utils.jsonreturn.py import *
+from app.api.utils.jsonreturn import *
+        
 $name = APIRouter()
 
-@$name.post('/')
-def create_$name($name:$name):
-    try:
-        if():
-          $name = conn.db.$name.insert_one()
-          return $name
-    except Exception as e:
-        return 
-
 #Metodos
-
-
 def post(object,db):
     try:
         object = object.dict()
-        print(object)
         object_id  = db.insert_one(object).inserted_id
         object = db.find_one({'_id':object_id})
         object = dict(object)
@@ -182,7 +148,6 @@ def post(object,db):
 def get(key,db,id):
     try:
         if(key=='_id'):
-            print('INgreso')
             object = db.find_one({f'{key}':ObjectId(id)})
         else:
             object = db.find_one({f'{key}':id})
@@ -207,10 +172,10 @@ def put(key,db,id,data):
             data = dict(data)
             print(object)
             if(key=='_id'):
-                db.update_one({f'{key}':ObjectId(id)},{'$set':object})
+                db.update_one({f'{key}':ObjectId(id)},{'\$set':data})
                 object = db.find_one({f'{key}':ObjectId(id)})
             else:
-                db.update_one({f'{key}':id},{'$set':object})
+                db.update_one({f'{key}':id},{'\$set':data})
                 object = db.find_one({f'{key}':id})        
             object['_id'] = str(object['_id'])
             data_object['message'] = object 
@@ -241,23 +206,23 @@ def delete(key,db,id):
         return error
 
 @$name.post('/$name/', tags=['$name'])
-def post_$name($name:$name):
-    return post($name,conn.name.$name)
+def post_$name($name:${name^}):
+    return post($name,conn.$name.$name)
 
-@$name.get('/$name/{$name+_id}/', tags=['$name'])
-def get_$name($name_id:str):
-    return get('_id',conn.name.$name,$name+_id)
+@$name.get('/$name/{${name}_id}/', tags=['$name'])
+def get_$name(${name}_id:str):
+    return get('_id',conn.$name.$name,${name}_id)
 
-@$name.put('/$name/{$name+_id}/', tags=['$name'])
-def update_$name($name+_id:str, $name:$name):
-    return put('_id',conn.name.$name,$name+_id,$name)
-
-""" > $api_name/app/api/routes/$name.py
+@$name.put('/$name/{${name}_id}/', tags=['$name'])
+def update_$name(${name}_id:str, $name:${name^}):
+    return put('_id',conn.$name.$name,${name}_id,$name)
+    
+@$name.delete('/$name/{${name}_id}/', tags=['$name'])
+def delete_$name(${name}_id:str):
+    return delete('_id',conn.$name.$name,${name}_id)""" > $api_name/app/api/routes/$name.py
 
 #jsonreturn 
-
-echo """
-error =  {
+echo """error =  {
     'code':1216,
     'message':''
 }
@@ -274,12 +239,10 @@ data_object_exist = {
 
 data_object_does_not_exist = {
     'code': 1217,
-    'message': 'The user_car does not exist'
+    'message': ''
 }
-
 
 data_delete = {
     'code': 200,
-    'message': 'the car was deleted'
-}
-""" > $api_name/app/api/utils/jsonreturn.py
+    'message': ''
+}""" > $api_name/app/api/utils/jsonreturn.py
