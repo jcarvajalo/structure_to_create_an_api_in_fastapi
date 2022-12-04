@@ -1,12 +1,11 @@
-echo "Ingrese el nombre de la api"
-read name
-echo "ingrese la ruta donde se va a crear la api, ejemplo /home/user/Documentos"
-read path
+read -p "Ingresa el nombre de la API:" name
+read -p "Ingresa la ruta COMPLETA donde se va a crear la API. (Ej: /home/user/Documentos):" path
+
 cd $path
+
 api_name=api_$name
 conda create --name $api_name python=3
 conda activate $api_name
-echo $api_name
 
 #Directories 
 mkdir $api_name
@@ -22,9 +21,14 @@ mkdir $api_name/app/api/utils
 pip install fastapi==0.63.0
 pip install pymongo==4.1.1
 pip install uvicorn==0.13.3
+pip install dnspython==2.2.1
+pip install python-dotenv==0.21.0
 
 #create file requirements
 pip freeze > $api_name/requirements.txt
+
+#install requirements
+pip install -r $api_name/requirements.txt
 
 #create docker file
 echo """FROM python:3.9-slim
@@ -39,6 +43,11 @@ RUN apt-get update \
 RUN pip install -r requirements.txt
 COPY . /app/""" > $api_name/Dockerfile
 
+#.env file
+echo """API_CREDENTIALS_USERNAME=$name
+API_CREDENTIALS_PASSWORD=$name
+MONGO_CLIENT=""" > $api_name/.env
+
 #files
 echo """from fastapi import FastAPI
 from app.api.routes.$name import $name
@@ -47,7 +56,7 @@ from fastapi.middleware.cors import CORSMiddleware
 app = FastAPI(
     openapi_url='/api/v1/$name/openapi.json',
     docs_url='/api/v1/$name/docs',
-    title='',
+    title='$name',
     description='',
     version='0.0.1',
     terms_of_service='',
@@ -82,7 +91,19 @@ async def shutdown():
 app.include_router($name, prefix='/api/v1/$name')""" > $api_name/app/app.py
 
 echo """from pymongo import MongoClient
-conn = MongoClient('')""" > $api_name/app/api/config/db.py
+from app.api.config.env import MONGO_CLIENT
+
+conn = MongoClient(MONGO_CLIENT)""" > $api_name/app/api/config/db.py
+
+echo """import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+MONGO_CLIENT = os.getenv('MONGO_CLIENT')
+
+API_CREDENTIALS_USERNAME = os.getenv('API_CREDENTIALS_USERNAME')
+API_CREDENTIALS_PASSWORD = os.getenv('API_CREDENTIALS_PASSWORD')""" > $api_name/app/api/config/env.py 
 
 echo """from typing import Optional
 from pydantic import BaseModel
@@ -104,14 +125,13 @@ def ${name}sEntity(entity) -> list():
 echo """import secrets
 from fastapi import HTTPException, status, Depends
 from fastapi.security import HTTPBasicCredentials, HTTPBasic
+from app.api.config.env import API_CREDENTIALS_USERNAME, API_CREDENTIALS_PASSWORD
 
 security = HTTPBasic()
-API_CREDENTIALS_USERNAME = '' #os.getenv('API_CREDENTIALS_USERNAME')
-API_CREDENTIALS_PASSWORD = '' #os.getenv('API_CREDENTIALS_PASSWORD')
 
 def get_current_username(credentials: HTTPBasicCredentials = Depends(security)):
-    correct_username = secrets.compare_digest(credentials.username,'jairo')
-    correct_password = secrets.compare_digest(credentials.password, 'jairo') 
+    correct_username = secrets.compare_digest(credentials.username,API_CREDENTIALS_USERNAME)
+    correct_password = secrets.compare_digest(credentials.password, API_CREDENTIALS_PASSWORD) 
     if not (correct_username and correct_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -246,3 +266,7 @@ data_delete = {
     'code': 200,
     'message': ''
 }""" > $api_name/app/api/utils/jsonreturn.py
+
+clear
+
+echo "API creada con exito :)"
